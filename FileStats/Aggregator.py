@@ -8,18 +8,18 @@ from math import ceil
 import Processor
 import csv
 from shutil import rmtree
+from time import sleep
 
 class Cluster:
-    def __init__(self, processors, key_file, report, files):
+    def __init__(self, processors, key_file, report, chunk, files):
+        self.files_per_job = chunk
         self.files = files
         self.key_file = key_file
         self.report_folder = report
         self.statistics = os.path.join(report, "statistics.txt")
         self.processors = processors
         self.popen = []
-        
-    def add_process(self, p):
-        self.popen.append(p)
+        self.jobs = []
 
     def wait_all(self):
         for p in self.popen:
@@ -28,7 +28,7 @@ class Cluster:
     def write_report(self):
         line_stats_res = []
         key_count = None
-        for i in range(self.processors):
+        for i in range(max(self.processors, len(self.jobs))):
             stats_in = os.path.join(self.report_folder, str(i), "line.stats.csv")
             key_in = os.path.join(self.report_folder, str(i), "keywords.counts.csv")
             if key_count is None:
@@ -53,11 +53,12 @@ class Cluster:
             stats_writer.writerow(["std tokens", stds.loc["TokenCount"]])
             key_count.transpose().to_csv(stats_out, sep='\t', header=False)
 
+    # Delete no longer needed Processor output
     def cleanup(self):
-        for i in range(self.processors):
+        for i in range(max(self.processors, len(self.jobs))):
             rmtree(os.path.join(self.report_folder,str(i)))
 
-
+    # Split input files amoung all processors evenly and blindly
     def naive_schedule(self):
         split = ceil(len(self.files) / self.processors)
         start = 0
@@ -67,9 +68,38 @@ class Cluster:
             params = [Processor.__file__, "--keywords", self.key_file,
                 "--report", os.path.join(self.report_folder, str(i))]
             params.extend(input_files)
-            print("{}: {}".format(i, input_files))
-            self.add_process(subprocess.Popen(params))
+            self.popen.append(subprocess.Popen(params))
             start = end
+
+    def chunk_schedule_jobs(self):
+        jobs = ceil(len(self.files) / self.files_per_job)
+        start = 0
+        for i in range(jobs):
+            end = min(len(self.files), start+self.files_per_job)
+            input_files = self.files[start:end]
+            params = [Processor.__file__, "--keywords", self.key_file,
+                "--report", os.path.join(self.report_folder, str(i))]
+            params.extend(input_files)
+            print("{}: {}".format(i, input_files))
+            self.jobs.append(params)
+            start = end
+    
+    def run_jobs(self):
+        current_job = 0
+        for i in range(self.processors):
+            self.popen.append(subprocess.Popen(self.jobs[current_job]))
+            current_job += 1
+        while current_job < len(self.jobs):
+            print("Current_job: {}".format(current_job))
+            for i in range(len(self.popen)):
+                if current_job >= len(self.jobs):
+                    break
+                if self.popen[i].poll() is not None:
+                    self.popen[i] = subprocess.Popen(self.jobs[current_job])
+                    current_job += 1        
+        self.wait_all()
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Manage multiple FileStats Processors")
@@ -81,6 +111,7 @@ def main():
         help="Folder to save results.")
     parser.add_argument('--file', type=str, nargs='+',
         help='File to be processed')
+    parser.add_argument('--chunk', type=int, default=10)
     args = parser.parse_args()
 
     files = []
@@ -90,9 +121,10 @@ def main():
     for l in sys.stdin:
         files.append(l.strip())
 
-    cluster = Cluster(args.processors, args.keywords, args.report, files)
-    cluster.naive_schedule()
-    cluster.wait_all()
+    cluster = Cluster(args.processors, args.keywords, 
+        args.report, args.chunk, files)
+    cluster.chunk_schedule_jobs()
+    cluster.run_jobs()
     cluster.write_report()
     cluster.cleanup()
 
