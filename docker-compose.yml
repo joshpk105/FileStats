@@ -8,3 +8,10 @@ services:
     stdin_open: true
     tty: true
     entrypoint: /bin/bash
+  interactive:
+    image: filestats_benchmark
+    volumes:
+      - ./:/code
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash
