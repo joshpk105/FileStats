@@ -89,14 +89,15 @@ class Cluster:
         for i in range(self.processors):
             self.popen.append(subprocess.Popen(self.jobs[current_job]))
             current_job += 1
+        print("Current_job: {}".format(current_job))
         while current_job < len(self.jobs):
-            print("Current_job: {}".format(current_job))
             for i in range(len(self.popen)):
                 if current_job >= len(self.jobs):
                     break
                 if self.popen[i].poll() is not None:
                     self.popen[i] = subprocess.Popen(self.jobs[current_job])
-                    current_job += 1        
+                    current_job += 1
+                    print("Current_job: {}".format(current_job))
         self.wait_all()
 
 
@@ -112,14 +113,19 @@ def main():
     parser.add_argument('--file', type=str, nargs='+',
         help='File to be processed')
     parser.add_argument('--chunk', type=int, default=10)
+    parser.add_argument('--file_list', type=str, 
+        help="File containing one filepath per line to be processed.")
     args = parser.parse_args()
 
     files = []
     if args.file is not None:
         files.extend(args.file)
-    # Read files from stdin, one file per line
-    for l in sys.stdin:
-        files.append(l.strip())
+
+    # Read file list
+    if args.file_list is not None:
+        with open(args.file_list, "r") as fl_in:
+            for f in fl_in:
+                files.append(f.strip())
 
     cluster = Cluster(args.processors, args.keywords, 
         args.report, args.chunk, files)
@@ -127,8 +133,6 @@ def main():
     cluster.run_jobs()
     cluster.write_report()
     cluster.cleanup()
-
-    
 
 if __name__ == "__main__":
     main()
