@@ -71,14 +71,19 @@ class Cluster:
             self.popen.append(subprocess.Popen(params))
             start = end
 
-    def chunk_schedule_jobs(self):
+    def chunk_schedule_jobs(self, profile):
         jobs = ceil(len(self.files) / self.files_per_job)
         start = 0
         for i in range(jobs):
             end = min(len(self.files), start+self.files_per_job)
             input_files = self.files[start:end]
-            params = [Processor.__file__, "--keywords", self.key_file,
-                "--report", os.path.join(self.report_folder, str(i))]
+            params = []
+            if profile:
+                profile_out = os.path.join(self.report_folder, 
+                    "job{}.cProfile".format(str(i)))
+                params.extend(["python", "-m", "cProfile", "-o", profile_out])
+            params.extend([Processor.__file__, "--keywords", self.key_file,
+                "--report", os.path.join(self.report_folder, str(i))])
             params.extend(input_files)
             self.jobs.append(params)
             start = end
@@ -113,6 +118,8 @@ def main():
     parser.add_argument('--file_list', type=str, 
         help="File containing one filepath per line to be processed.")
     parser.add_argument("--cleanup", default=True, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--profile", default=False, action='store_true',
+        help="Add if you want to run Processors with cProfile.")
     args = parser.parse_args()
 
     files = []
@@ -127,7 +134,7 @@ def main():
 
     cluster = Cluster(args.processors, args.keywords, 
         args.report, args.chunk, files)
-    cluster.chunk_schedule_jobs()
+    cluster.chunk_schedule_jobs(args.profile)
     cluster.run_jobs()
     cluster.write_report()
     if args.cleanup:
