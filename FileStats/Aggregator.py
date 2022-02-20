@@ -86,7 +86,7 @@ class Cluster:
     
     def run_jobs(self):
         current_job = 0
-        for i in range(self.processors):
+        for i in range(min(self.processors, len(self.jobs))):
             self.popen.append(subprocess.Popen(self.jobs[current_job]))
             current_job += 1
         print("Current_job: {}".format(current_job))
@@ -99,8 +99,6 @@ class Cluster:
                     current_job += 1
                     print("Current_job: {}".format(current_job))
         self.wait_all()
-
-
 
 def main():
     parser = argparse.ArgumentParser(description="Manage multiple FileStats Processors")
