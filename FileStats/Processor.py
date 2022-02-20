@@ -13,9 +13,8 @@ whitespace = re.compile('\s+')
 class LineStats:
     def __init__(self, keyword_file, report):
         os.makedirs(report, exist_ok=True)
-        kf = os.path.basename(keyword_file)
-        kf = "{}.counts.json".format(kf)
-        self.count_out = open(os.path.join(report, kf), "w")
+        self.count_out = open(os.path.join(report, "keywords.counts.csv"), "w")
+        self.count_writer = csv.writer(self.count_out)
         self.stats_out = open(os.path.join(report, "line.stats.csv"), 'w')
         self.stats_writer = csv.writer(self.stats_out)
         self.stats_writer.writerow(["CharCount", "TokenCount", "LineHash"])
@@ -51,13 +50,19 @@ class LineStats:
     
     # Write counts to json file to avoid conflict of line stats in stdout
     def report(self):
-        self.count_out.write(json.dumps(self.key_count))
+        header = []
+        counts = []
+        for k in sorted(self.key_count.keys()):
+            header.append(k)
+            counts.append(self.key_count[k])
+        self.count_writer.writerow(header)
+        self.count_writer.writerow(counts)
         self.count_out.close()
         self.stats_out.close()
 
 def main():
     parser = argparse.ArgumentParser(description="Process files into raw stats.")
-    parser.add_argument('files', metavar='file', type=str, nargs='+', 
+    parser.add_argument('file', metavar="file", type=str, nargs='+',
         help='Files to be processed')
     parser.add_argument('--keywords', required=True, dest="keywords", type=str, 
         help='File with keywords to be counted.')
@@ -65,16 +70,16 @@ def main():
         help="The folder path to save results to.")
     args = parser.parse_args()
 
+    files = []
+    if args.file is not None:
+        files.extend(args.file)
+
     if not os.path.isfile(args.keywords):
         sys.stderr.write("Keyword file not found: {}\n".format(args.keywords))
+        return
     ls = LineStats(args.keywords, args.report)
 
-    # Also read input files from stdin, one file per line
-    for l in sys.stdin:
-        args.files.append(l.strip())
-
-    for f in args.files:
-        print("Processing: {}".format(f))
+    for f in files:
         if not os.path.isfile(f):
             sys.stderr.write("Provided path is not found: {}\n".format(f))
             continue
