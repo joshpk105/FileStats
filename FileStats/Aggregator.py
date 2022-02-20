@@ -80,7 +80,6 @@ class Cluster:
             params = [Processor.__file__, "--keywords", self.key_file,
                 "--report", os.path.join(self.report_folder, str(i))]
             params.extend(input_files)
-            print("{}: {}".format(i, input_files))
             self.jobs.append(params)
             start = end
     
@@ -113,6 +112,7 @@ def main():
     parser.add_argument('--chunk', type=int, default=10)
     parser.add_argument('--file_list', type=str, 
         help="File containing one filepath per line to be processed.")
+    parser.add_argument("--cleanup", default=True, action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
     files = []
@@ -130,7 +130,8 @@ def main():
     cluster.chunk_schedule_jobs()
     cluster.run_jobs()
     cluster.write_report()
-    cluster.cleanup()
+    if args.cleanup:
+        cluster.cleanup()
 
 if __name__ == "__main__":
     main()

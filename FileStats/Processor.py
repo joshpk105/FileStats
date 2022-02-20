@@ -13,6 +13,7 @@ whitespace = re.compile('\s+')
 class LineStats:
     def __init__(self, keyword_file, report):
         os.makedirs(report, exist_ok=True)
+        self.print_cmd(os.path.join(report, "cmd.sh"))
         self.count_out = open(os.path.join(report, "keywords.counts.csv"), "w")
         self.count_writer = csv.writer(self.count_out)
         self.stats_out = open(os.path.join(report, "line.stats.csv"), 'w')
@@ -22,6 +23,10 @@ class LineStats:
         with open(keyword_file, "r") as k_in:
             for key in k_in:
                 self.key_count[key.strip()] = 0
+
+    def print_cmd(self, cmd_file):
+        with open(cmd_file, "w") as cmd_out:
+            cmd_out.write(" ".join(sys.argv)+"\n")
 
     # Could be memoryoptimized by iterating over the line 
     # characters instead of splitting.
