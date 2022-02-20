@@ -1,4 +1,10 @@
 version: "3.9"
 services:
-  local:
+  benchmark:
     build: .
+    command: ./run_profile.sh
+    volumes:
+      - ./:/code
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash

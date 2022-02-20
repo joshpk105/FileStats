@@ -10,6 +10,7 @@ import csv
 from shutil import rmtree
 from time import sleep
 
+# Manages building the jobs and handles processors
 class Cluster:
     def __init__(self, processors, key_file, report, chunk, files):
         self.files_per_job = chunk
@@ -21,10 +22,12 @@ class Cluster:
         self.popen = []
         self.jobs = []
 
+    # Wait until all processors have completed
     def wait_all(self):
         for p in self.popen:
             p.wait()
 
+    # Aggregate the output into the final statistics file
     def write_report(self):
         line_stats_res = []
         key_count = None
@@ -71,6 +74,7 @@ class Cluster:
             self.popen.append(subprocess.Popen(params))
             start = end
 
+    # Split file list into chunk size for each job
     def chunk_schedule_jobs(self, profile):
         jobs = ceil(len(self.files) / self.files_per_job)
         start = 0
@@ -88,6 +92,7 @@ class Cluster:
             self.jobs.append(params)
             start = end
     
+    # Run all jobs with the provided processor count
     def run_jobs(self):
         current_job = 0
         for i in range(min(self.processors, len(self.jobs))):

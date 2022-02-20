@@ -10,6 +10,7 @@ import csv
 
 whitespace = re.compile('\s+')
 
+# Handles the statistics building and writing
 class LineStats:
     def __init__(self, keyword_file, report):
         os.makedirs(report, exist_ok=True)
@@ -24,6 +25,7 @@ class LineStats:
             for key in k_in:
                 self.key_count[key.strip()] = 0
 
+    # Print command line info
     def print_cmd(self, cmd_file):
         with open(cmd_file, "w") as cmd_out:
             cmd_out.write(" ".join(sys.argv)+"\n")
