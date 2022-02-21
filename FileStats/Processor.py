@@ -30,9 +30,9 @@ class LineStats:
         with open(cmd_file, "w") as cmd_out:
             cmd_out.write(" ".join(sys.argv)+"\n")
 
-    # Could be memoryoptimized by iterating over the line 
+    # Could be memory optimized by iterating over the line 
     # characters instead of splitting.
-    # Memory complexity O(3*line+hash)
+    # Memory complexity O(3*line)
     def process_line(self, line : str):
         char_count = len(line)
         # Change hashing algorithm for more accurate duplicate line counting
@@ -55,11 +55,13 @@ class LineStats:
                 self.key_count[t] += 1
             counted[t] = True
     
-    # Write counts to json file to avoid conflict of line stats in stdout
+    # Write keyword count csv file and close stats file
+    # Memory complexity O(3*keywords)
+    # Time complexity O(keywords*log(keywords))
     def report(self):
         header = []
         counts = []
-        for k in sorted(self.key_count.keys()):
+        for k in sorted(self.key_count.keys(), key=str.lower):
             header.append(k)
             counts.append(self.key_count[k])
         self.count_writer.writerow(header)

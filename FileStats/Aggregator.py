@@ -98,7 +98,7 @@ class Cluster:
         for i in range(min(self.processors, len(self.jobs))):
             self.popen.append(subprocess.Popen(self.jobs[current_job]))
             current_job += 1
-        print("Current_job: {}".format(current_job))
+        print("Job: {}/{}".format(current_job, len(self.jobs)))
         while current_job < len(self.jobs):
             for i in range(len(self.popen)):
                 if current_job >= len(self.jobs):
@@ -106,7 +106,7 @@ class Cluster:
                 if self.popen[i].poll() is not None:
                     self.popen[i] = subprocess.Popen(self.jobs[current_job])
                     current_job += 1
-                    print("Current_job: {}".format(current_job))
+                    print("Job: {}/{}".format(current_job, len(self.jobs)))
         self.wait_all()
 
 def main():
